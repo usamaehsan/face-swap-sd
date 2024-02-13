@@ -20,6 +20,7 @@ from diffusers.utils import load_image
 import numpy as np
 import tempfile
 import time
+from typing import List
 
 class Predictor(BasePredictor):
     def setup(self):
