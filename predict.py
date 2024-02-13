@@ -97,7 +97,7 @@ class Predictor(BasePredictor):
             self.pipe.safety_checker = None
         
         self.pipe.set_ip_adapter_scale(ip_adapter_scale)
-        image = load_image(image)
+        image = load_image(str(image))
         image_ = self.pipe(
             prompt=prompt,
             negative_prompt= negative_prompt,
