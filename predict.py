@@ -121,7 +121,7 @@ class Predictor(BasePredictor):
             paste_back=True
         )
 
-        out_path = Path(tempfile.mkdtemp()) / f"{str(int(time.time()))}.jpg"
+        out_path = f"/tmp/output_0.png"
         cv2.imwrite(str(out_path), result)
-        return out_path
+        return Path(out_path)
     
