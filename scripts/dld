@@ -7,14 +7,14 @@ import sys
 # append project directory to path so predict.py can be imported
 # sys.path.append('.')
 # from predict import MODEL_CACHE
-MODEL_CACHE = "cache"
+MODEL_CACHE = "weights"
 
 # Make cache folders
 if not os.path.exists(MODEL_CACHE):
     os.makedirs(MODEL_CACHE)
 
 # Download GFPGANv1.4
-os.system("cd cache && wget https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth")
+os.system(f"cd {MODEL_CACHE} && wget https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth")
 
 # Download inswapper_128.onnx
-os.system("cd cache && wget https://huggingface.co/ashleykleynhans/inswapper/resolve/main/inswapper_128.onnx")
+os.system(f"cd {MODEL_CACHE} && wget https://huggingface.co/ashleykleynhans/inswapper/resolve/main/inswapper_128.onnx")
