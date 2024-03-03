@@ -25,7 +25,6 @@ class Predictor(BasePredictor):
 
         self.pipe = AutoPipelineForText2Image.from_pretrained(model_id, torch_dtype=torch.float16)
         self.pipe.scheduler = LCMScheduler.from_config(self.pipe.scheduler.config)
-        self.pipe.to("cuda")
         self.pipe.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name="ip-adapter-plus_sd15.bin")
         # load and fuse lcm lora
         self.pipe.load_lora_weights(adapter_id)
@@ -55,6 +54,8 @@ class Predictor(BasePredictor):
             controlnet=[self.pose_controlnet],
         )
         self.controlnet_pipe.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name="ip-adapter-plus_sd15.bin")
+        self.controlnet_pipe.to("cuda")
+        self.pipe.to("cuda")
         # load and fuse lcm lora
         # self.pipe.load_lora_weights(adapter_id)
         # self.pipe.fuse_lora()
