@@ -55,7 +55,6 @@ class Predictor(BasePredictor):
             controlnet=[self.pose_controlnet],
         )
 
-
     def get_face(self, img_data):
         analysed = self.face_analyser.get(img_data)
         try:
@@ -141,7 +140,7 @@ class Predictor(BasePredictor):
                 print(e)
                 pose_image_ = Image.open(pose_image)
 
-            self.pipe.controlnet = MultiControlNetModel([self.pose_controlnet])
+            # self.pipe.controlnet = MultiControlNetModel([self.pose_controlnet])
             control_scales = [pose_scale]
             if use_pose_image_resolution:
                 w,h = pose_image_.size
