@@ -4,7 +4,7 @@ from controlnet_aux import ( OpenposeDetector,)
 from diffusers.pipelines.controlnet.multicontrolnet import MultiControlNetModel
 from compel import Compel
 import torch
-from diffusers import LCMScheduler, AutoPipelineForText2Image,ControlNetModel
+from diffusers import LCMScheduler, AutoPipelineForText2Image,ControlNetModel, StableDiffusionControlNetPipeline
 import insightface
 import onnxruntime
 from insightface.app import FaceAnalysis
@@ -41,6 +41,18 @@ class Predictor(BasePredictor):
         self.openpose = OpenposeDetector.from_pretrained('lllyasviel/ControlNet')
         self.pose_controlnet = ControlNetModel.from_pretrained(
             "lllyasviel/sd-controlnet-openpose", torch_dtype=torch.float16
+        )
+
+        p= self.pipe
+        self.controlnet_pipe = StableDiffusionControlNetPipeline(
+            vae=p.vae,
+            text_encoder=p.text_encoder,
+            tokenizer=p.tokenizer,
+            unet=p.unet,
+            scheduler=p.scheduler,
+            safety_checker=p.safety_checker,
+            feature_extractor=p.feature_extractor,
+            controlnet=[self.pose_controlnet],
         )
 
 
@@ -129,9 +141,7 @@ class Predictor(BasePredictor):
                 print(e)
                 pose_image_ = Image.open(pose_image)
 
-            self.pipe.controlnet = MultiControlNetModel(
-                    [self.pose_controlnet]
-            )
+            self.pipe.controlnet = MultiControlNetModel([self.pose_controlnet])
             control_scales = [pose_scale]
             if use_pose_image_resolution:
                 w,h = pose_image_.size
@@ -143,17 +153,28 @@ class Predictor(BasePredictor):
             control_images = []
 
         predict_t = time.time()
-        image_ = self.pipe(
-            prompt_embeds=self.compel_proc(prompt),
-            negative_prompt_embeds=self.compel_proc(negative_prompt),
-            image= control_images,
-            controlnet_conditioning_scale=control_scales,
-            num_inference_steps=num_inference_steps, 
-            guidance_scale=guidance_scale,
-            ip_adapter_image=image,
-            width=w,
-            height=h
-        ).images[0]
+        if pose_image:
+            image_ = self.controlnet_pipe(
+                prompt_embeds=self.compel_proc(prompt),
+                negative_prompt_embeds=self.compel_proc(negative_prompt),
+                image= control_images,
+                controlnet_conditioning_scale=control_scales,
+                num_inference_steps=num_inference_steps, 
+                guidance_scale=guidance_scale,
+                ip_adapter_image=image,
+                width=w,
+                height=h
+            ).images[0]
+        else:
+            image_ = self.pipe(
+                prompt_embeds=self.compel_proc(prompt),
+                negative_prompt_embeds=self.compel_proc(negative_prompt),
+                num_inference_steps=num_inference_steps, 
+                guidance_scale=guidance_scale,
+                ip_adapter_image=image,
+                width=w,
+                height=h
+            ).images[0]
         print(f"prediction time : {time.time() - predict_t:.2f} seconds")
 
         swap_time = time.time()
