@@ -167,10 +167,6 @@ class Predictor(BasePredictor):
                 w,h = pose_image_.size
             control_images = [self.openpose(pose_image_).resize((w,h))]
             print(f"pose time : {time.time() - pose_t:.2f} seconds")
-        else:
-            control_scales = []
-            self.pipe.controlnet = MultiControlNetModel()
-            control_images = []
 
         predict_t = time.time()
         if pose_image:
