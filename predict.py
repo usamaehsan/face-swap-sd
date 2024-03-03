@@ -15,6 +15,7 @@ import numpy as np
 import tempfile
 import time
 from typing import List
+from transformers import CLIPVisionModelWithProjection
 
 MODEL_CACHE = "weights"
 
@@ -23,9 +24,15 @@ class Predictor(BasePredictor):
         model_id = "SG161222/Realistic_Vision_V6.0_B1_noVAE"
         adapter_id = "latent-consistency/lcm-lora-sdv1-5"
 
+        self.image_encoder = CLIPVisionModelWithProjection.from_pretrained(
+            "h94/IP-Adapter", 
+            subfolder="models/image_encoder",
+            torch_dtype=torch.float16,
+        ).to("cuda")
+
         self.pipe = AutoPipelineForText2Image.from_pretrained(model_id, torch_dtype=torch.float16)
         self.pipe.scheduler = LCMScheduler.from_config(self.pipe.scheduler.config)
-        self.pipe.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name="ip-adapter-plus_sd15.bin")
+        self.pipe.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name="ip-adapter-plus_sd15.bin", image_encoder=self.image_encoder)
         # load and fuse lcm lora
         self.pipe.load_lora_weights(adapter_id)
         self.pipe.fuse_lora()
@@ -53,7 +60,7 @@ class Predictor(BasePredictor):
             feature_extractor=p.feature_extractor,
             controlnet=[self.pose_controlnet],
         )
-        self.controlnet_pipe.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name="ip-adapter-plus_sd15.bin")
+        self.controlnet_pipe.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name="ip-adapter-plus_sd15.bin", image_encoder=self.image_encoder)
         self.controlnet_pipe.to("cuda")
         self.pipe.to("cuda")
         # load and fuse lcm lora
@@ -122,7 +129,16 @@ class Predictor(BasePredictor):
         use_gfpgan: bool = Input(
             description="gfpgan to enhance face", default=True
         ),
+        swap_face: bool = Input(
+            description="", default=True
+        ),
     ) -> List[Path]:
+        
+        if not disable_safety_check and 'nude' in prompt:
+            raise Exception(
+                f"NSFW content detected. try a different prompt."
+            )
+
         t1 = time.time()
         if disable_safety_check:
             self.pipe.safety_checker = None
@@ -181,23 +197,26 @@ class Predictor(BasePredictor):
             ).images[0]
         print(f"prediction time : {time.time() - predict_t:.2f} seconds")
 
-        swap_time = time.time()
-        frame = cv2.cvtColor(np.array(image_), cv2.COLOR_RGB2BGR)
-        face = self.get_face(frame)
-        source_face = self.get_face(cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR))
+        out_path = f"/tmp/output_1.png"
+        if swap_face:
+            swap_time = time.time()
+            frame = cv2.cvtColor(np.array(image_), cv2.COLOR_RGB2BGR)
+            face = self.get_face(frame)
+            source_face = self.get_face(cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR))
 
-        result = self.face_swapper.get(frame, face, source_face, paste_back=True)
-        print(f"swap time : {time.time() - swap_time:.2f} seconds")
-        if use_gfpgan:
-            gfp_t= time.time()
-            _, _, result = self.face_enhancer.enhance(
-                result,
-                paste_back=True
-            )
-            print(f"gfpgan time : {time.time() - gfp_t:.2f} seconds")
+            result = self.face_swapper.get(frame, face, source_face, paste_back=True)
+            print(f"swap time : {time.time() - swap_time:.2f} seconds")
+            if use_gfpgan:
+                gfp_t= time.time()
+                _, _, result = self.face_enhancer.enhance(
+                    result,
+                    paste_back=True
+                )
+                print(f"gfpgan time : {time.time() - gfp_t:.2f} seconds")
 
-        out_path = f"/tmp/output_0.png"
-        cv2.imwrite(str(out_path), result)
+            cv2.imwrite(str(out_path), result)
+        else:
+            image_.save(out_path)
 
         print(f"total time : {time.time() - t1:.2f} seconds")
         return Path(out_path)
