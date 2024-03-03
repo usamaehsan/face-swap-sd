@@ -60,7 +60,7 @@ class Predictor(BasePredictor):
             feature_extractor=p.feature_extractor,
             controlnet=[self.pose_controlnet],
         )
-        self.controlnet_pipe.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name="ip-adapter-plus_sd15.bin", image_encoder=self.image_encoder)
+        self.controlnet_pipe.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name="ip-adapter_sd15.bin", image_encoder=self.image_encoder)
         self.controlnet_pipe.to("cuda")
         self.pipe.to("cuda")
         # load and fuse lcm lora
