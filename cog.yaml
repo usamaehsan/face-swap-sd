@@ -9,16 +9,16 @@ build:
 
   # a list of packages in the format <package-name>==<version>
   python_packages:
-    - "torch==2.0.0"
+    - "torch"
     - "opencv-python==4.9.0.80"
     - "transformers"
     - "accelerate"
-    - "insightface==0.7.3"
+    - "insightface"
     - "diffusers"
-    - "onnxruntime==1.16.3"
+    - "onnxruntime"
     - "peft"
     - "compel"
-    - "controlnet-aux==0.0.3"
+    - "controlnet-aux"
     - "gfpgan"
 
 predict: "predict.py:Predictor"
