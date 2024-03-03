@@ -16,6 +16,8 @@ import tempfile
 import time
 from typing import List
 
+MODEL_CACHE = "weights"
+
 class Predictor(BasePredictor):
     def setup(self):
         model_id = "SG161222/Realistic_Vision_V6.0_B1_noVAE"
@@ -29,10 +31,10 @@ class Predictor(BasePredictor):
         self.pipe.load_lora_weights(adapter_id)
         self.pipe.fuse_lora()
 
-        self.face_swapper = insightface.model_zoo.get_model('cache/inswapper_128.onnx', providers=onnxruntime.get_available_providers())
+        self.face_swapper = insightface.model_zoo.get_model(f'{MODEL_CACHE}/inswapper_128.onnx', providers=onnxruntime.get_available_providers())
         self.face_analyser = FaceAnalysis(name='buffalo_l')
         self.face_analyser.prepare(ctx_id=0, det_size=(640, 640))
-        self.face_enhancer = gfpgan.GFPGANer(model_path='cache/GFPGANv1.4.pth', upscale=1)
+        self.face_enhancer = gfpgan.GFPGANer(model_path=f'{MODEL_CACHE}/GFPGANv1.4.pth', upscale=1)
 
         self.compel_proc = Compel(tokenizer=self.pipe.tokenizer, text_encoder=self.pipe.text_encoder)
 
