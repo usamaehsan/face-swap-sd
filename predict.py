@@ -142,6 +142,7 @@ class Predictor(BasePredictor):
         t1 = time.time()
         if disable_safety_check:
             self.pipe.safety_checker = None
+            self.controlnet_pipe.safety_checker = None
         
         self.pipe.set_ip_adapter_scale(ip_adapter_scale)
         try:
